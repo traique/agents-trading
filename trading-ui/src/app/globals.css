@@ -367,3 +367,25 @@ html {
 @media (max-width: 639px) {
   .bento-2, .bento-wide { grid-column: span 1; }
 }
+
+/* ===== Accessibility (ui-ux-pro-max checklist) ===== */
+/* Reduced motion: tắt animation/transition dài cho user bật giảm chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch target tối thiểu 44px cho điều khiển chỉ-icon trên thiết bị cảm ứng */
+@media (pointer: coarse) {
+  button[class*="size-9"],
+  button[class*="size-8"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

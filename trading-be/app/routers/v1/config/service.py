@@ -11,6 +11,16 @@ from fastapi import HTTPException
 
 from app.routers.v1.config.schemas import ProviderInfo, ModelInfo, ProviderDetailResponse
 
+
+def map_provider_for_client(provider: str) -> str:
+    """Map a UI provider id onto the llm_clients registry.
+
+    UI vẫn expose 'lmstudio' riêng cho sinh viên dùng local, nhưng registry
+    của tradingagents 0.4.0 đã gỡ tên này — nó đi qua provider generic
+    'openai_compatible'.
+    """
+    return "openai_compatible" if provider.lower() == "lmstudio" else provider.lower()
+
 # ── Canonical provider table (mirrors cli/utils.py _llm_provider_table) ───────
 # We keep this here as a static copy so trading-be doesn't depend on the CLI
 # package at runtime. Any update to cli/utils.py should be reflected here.

@@ -134,16 +134,17 @@ async def test_get_provider_models_lmstudio_mock_models(monkeypatch):
     model_ids = [m.id for m in res.models]
     assert "google/gemma-3-12b" in model_ids
 
-def test_create_llm_client_lmstudio_no_api_key():
+def test_create_llm_client_openai_compatible_no_api_key():
     from tradingagents.llm_clients import create_llm_client
-    # Should not raise ValueError or OpenAI validation error
-    client = create_llm_client(provider="lmstudio", model="google/gemma-3-12b", api_key=None)
+    # Upstream 0.4.0: LM Studio đi qua provider generic openai_compatible,
+    # cần một chuỗi key bất kỳ cho SDK (backend đặt "ollama" khi user bỏ trống)
+    client = create_llm_client(provider="openai_compatible", model="google/gemma-3-12b", api_key="ollama", base_url="http://localhost:1234/v1")
     llm = client.get_llm()
-    assert llm.openai_api_key.get_secret_value() == "ollama"
     assert llm.model_name == "google/gemma-3-12b"
 
-def test_create_llm_client_lmstudio_base_url_rewrite():
-    from tradingagents.llm_clients import create_llm_client
-    client = create_llm_client(provider="lmstudio", model="google/gemma-3-12b", base_url="http://localhost:1234/api/v1")
-    llm = client.get_llm()
-    assert llm.openai_api_base == "http://localhost:1234/v1"
+def test_map_provider_for_client():
+    from app.routers.v1.config.service import map_provider_for_client
+    assert map_provider_for_client("lmstudio") == "openai_compatible"
+    assert map_provider_for_client("openai") == "openai"
+    assert map_provider_for_client("ollama") == "ollama"
+

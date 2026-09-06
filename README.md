@@ -82,5 +82,5 @@ Panel trên trang Agents cho chọn provider/model/depth (shallow = nhanh và r�
 - LightRAG + Reflection Agent (vòng tự học) mới ở giai đoạn preview, chưa chạy thật.
 - Browser Agent vĩ mô là non-deterministic (chậm, tốn token, phụ thuộc LLM điều hướng trang web) — kết quả phần này luôn gắn nguồn và nên kiểm chứng chéo.
 - Free tier Render: 512MB RAM nên không chạy được Playwright/Chromium; service ngủ sau ~15 phút không traffic.
-- Repo gốc (upstream) đang ở v0.4.0, fork này base từ 0.2.5 — chưa sync.
+- Lõi `tradingagents/` đã sync lên upstream v0.4.0 (fix look-ahead, checkpoint resume, FRED/Polymarket vendors, GPT-5.6/GLM-5.3, Bedrock, retry budget). Skill UI/UX (ui-ux-pro-max) nằm trong `.claude/skills/` — AI phát triển giao diện nên đọc `design-system/agents-trading/MASTER.md` trước khi dựng trang mới.
 - Mọi khuyến nghị từ AI chỉ để nghiên cứu, không phải lời khuyên đầu tư. Quyết định là của bạn.

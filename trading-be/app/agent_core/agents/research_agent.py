@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 from app.agent_core.common.date import normalize_analysis_date
+from app.routers.v1.config.service import map_provider_for_client
 from tradingagents.llm_clients import create_llm_client
 from langchain_core.messages import HumanMessage, AIMessageChunk
 from app.routers.v1.agent_reports.models.non_relational import AgentLog
@@ -527,11 +528,15 @@ class ResearchAgentRunner:
                     )
 
                     client_kwargs = {
-                        "provider": self.config.get("llm_provider", "openai"),
+                        "provider": map_provider_for_client(self.config.get("llm_provider", "openai")),
                         "model": self.config.get("deep_think_llm", "gpt-4o"),
                         "api_key": self.config.get("api_key"),
                         "base_url": self.config.get("backend_url"),
                     }
+                    # Provider generic openai_compatible cho phép chạy keyless
+                    # nhưng SDK OpenAI vẫn cần một chuỗi key bất kỳ.
+                    if client_kwargs["provider"] == "openai_compatible" and not client_kwargs["api_key"]:
+                        client_kwargs["api_key"] = "ollama"
                     if "azure_endpoint" in self.config:
                         client_kwargs["azure_endpoint"] = self.config["azure_endpoint"]
                     if "azure_deployment" in self.config:

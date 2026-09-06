@@ -199,6 +199,14 @@ def _fetch_vnstock(symbol: str, start_date: str, end_date: str) -> OhlcvSeries:
             except (TypeError, ValueError, KeyError):
                 continue
         rows = sorted(zip(dates, opens, highs, lows, closes, volumes))
+        # VCI trả giá theo nghìn VND cho cổ phiếu nhưng là điểm gốc cho index;
+        # nhận diện qua median để không nhầm cổ 2k với index (# VN price scale).
+        if rows and not is_vn_index(sym):
+            median = sorted(r[4] for r in rows)[len(rows) // 2]
+            scale = 1 if median >= 1000 else DNSE_PRICE_SCALE
+            if scale > 1:
+                rows = [(d, o * scale, h * scale, l * scale, c * scale, v)
+                        for d, o, h, l, c, v in rows]
         return OhlcvSeries(
             symbol=sym,
             opens=[r[1] for r in rows], highs=[r[2] for r in rows],
