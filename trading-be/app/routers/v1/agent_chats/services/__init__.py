@@ -150,6 +150,21 @@ class ChatService:
             # The UI saves the key either directly under the provider or as {provider}_API_KEY depending on the config logic
             api_key = api_keys.get(provider)
 
+        # Provider chain kiểu lananh: provider chính + fallbacks do UI chọn,
+        # lọc chỉ giữ provider có API key (user settings hoặc env của service -
+        # trên Render key thường đặt ở env, không phải user settings).
+        requested_fallbacks = request_data.get("provider_fallbacks") or []
+        for p in [provider] + list(requested_fallbacks):
+            if p and p not in api_keys and p not in ("azure_endpoint", "azure_deployment"):
+                env_key = os.getenv(f"{p.upper()}_API_KEY")
+                if env_key:
+                    api_keys[p] = env_key.strip()
+        provider_fallbacks = [
+            p
+            for p in requested_fallbacks
+            if p and p != provider and api_keys.get(p)
+        ]
+
         # Build advanced kwargs for OrchestratorAgent
         orchestrator_kwargs = {}
         if request_data.get("temperature") is not None:
@@ -239,6 +254,11 @@ class ChatService:
                 if api_key:
                     config["api_key"] = api_key
                 config["analysis_date"] = analysis_date
+                # Provider chain: toàn bộ keys (user + env) + fallbacks đưa
+                # xuống graph để create_client_with_fallback tự chọn nguồn.
+                config["api_keys"] = api_keys
+                if provider_fallbacks:
+                    config["llm_provider_fallbacks"] = provider_fallbacks
                 if (
                     user_settings
                     and user_settings.llm_backend_url

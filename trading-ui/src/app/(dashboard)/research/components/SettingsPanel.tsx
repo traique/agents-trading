@@ -12,9 +12,10 @@ import {
   TrendingUp, 
   Newspaper, 
   LineChart, 
-  Sparkles, 
-  Layers, 
-  Gauge 
+  Sparkles,
+  Layers,
+  Gauge,
+  Shuffle
 } from "lucide-react"
 import {
   AnthropicIcon,
@@ -142,6 +143,7 @@ export const SettingsPanel: React.FC = React.memo(() => {
       selectedQuickModel,
       selectedDeepModel,
       useAdvancedModels,
+      fallbackProviders,
       teamFundamentals,
       teamSentiment,
       teamNews,
@@ -162,6 +164,7 @@ export const SettingsPanel: React.FC = React.memo(() => {
     selectedQuickModel,
     selectedDeepModel,
     useAdvancedModels,
+    fallbackProviders,
     teamFundamentals,
     teamSentiment,
     teamNews,
@@ -236,11 +239,12 @@ export const SettingsPanel: React.FC = React.memo(() => {
                   <span>Loading providers...</span>
                 </div>
               ) : (
-                <Select value={selectedProvider} onValueChange={(v) => { 
-                  setSelectedProvider(v); 
-                  setSelectedModel(""); 
-                  setSelectedQuickModel(""); 
-                  setSelectedDeepModel(""); 
+                <Select value={selectedProvider} onValueChange={(v) => {
+                  setSelectedProvider(v);
+                  setSelectedModel("");
+                  setSelectedQuickModel("");
+                  setSelectedDeepModel("");
+                  setFallbackProviders((prev) => prev.filter((id) => id !== v));
                 }}>
                   <SelectTrigger className="bg-background/60 h-10 border-primary/20 hover:border-primary/40 focus:ring-primary/30 transition-all rounded-xl shadow-sm w-full">
                     <SelectValue placeholder="Select Provider">
@@ -278,6 +282,44 @@ export const SettingsPanel: React.FC = React.memo(() => {
                   </SelectContent>
                 </Select>
               )}
+            </div>
+
+            {/* Fallback Providers - dùng nhiều provider như chuỗi dự phòng */}
+            <div className="space-y-3">
+              <Label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Shuffle className="h-3 w-3" /> Fallbacks
+              </Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {providers
+                  .filter((p) => p.id !== selectedProvider && p.is_ready)
+                  .map((provider) => {
+                    const checked = fallbackProviders.includes(provider.id)
+                    return (
+                      <label
+                        key={provider.id}
+                        className={`flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-xs transition-all ${
+                          checked
+                            ? "border-primary/40 bg-primary/10 text-foreground"
+                            : "border-border/60 bg-background/40 text-muted-foreground hover:bg-background/70"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) =>
+                            setFallbackProviders((prev) =>
+                              v ? [...prev, provider.id] : prev.filter((id) => id !== provider.id)
+                            )
+                          }
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="truncate">{provider.name}</span>
+                      </label>
+                    )
+                  })}
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Provider dự phòng: khi chính gặp lỗi (key sai, hết quota), hệ thống tự rơi sang provider kế tiếp với model mặc định của nó.
+              </p>
             </div>
 
             {/* Model Selector */}

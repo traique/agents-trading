@@ -249,6 +249,7 @@ export default function AgentsResearchPage() {
             top_k: parsed.topK !== undefined ? Number(parsed.topK) : undefined,
             max_tokens: parsed.maxTokens !== undefined ? Number(parsed.maxTokens) : undefined,
             max_retries: parsed.maxRetries !== undefined ? Number(parsed.maxRetries) : undefined,
+            provider_fallbacks: Array.isArray(parsed.fallbackProviders) ? parsed.fallbackProviders : [],
           };
         }
       } catch (e) {

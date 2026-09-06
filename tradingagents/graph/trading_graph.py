@@ -41,7 +41,7 @@ from tradingagents.agents.utils.memory import TradingMemoryLog
 from tradingagents.dataflows.config import set_config
 from tradingagents.dataflows.utils import safe_ticker_component
 from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.llm_clients import create_llm_client
+from tradingagents.llm_clients import create_client_with_fallback, normalize_chain, provider_health_snapshot
 from tradingagents.reporting import write_report_tree
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
@@ -121,21 +121,38 @@ class TradingAgentsGraph:
         if self.callbacks:
             llm_kwargs["callbacks"] = self.callbacks
 
-        deep_client = create_llm_client(
-            provider=self.config["llm_provider"],
+        # Provider chain: primary + fallbacks (llm_provider_fallbacks) with
+        # cooldown health state. api_keys from config feed per-provider keys.
+        chain = normalize_chain(
+            self.config["llm_provider"],
+            self.config.get("llm_provider_fallbacks"),
+        )
+        deep_provider, deep_llm = create_client_with_fallback(
+            chain,
             model=self.config["deep_think_llm"],
+            mode="deep",
+            api_keys=self.config.get("api_keys") or {},
             base_url=self.config.get("backend_url"),
             **llm_kwargs,
         )
-        quick_client = create_llm_client(
-            provider=self.config["llm_provider"],
+        _, quick_llm = create_client_with_fallback(
+            chain,
             model=self.config["quick_think_llm"],
+            mode="quick",
+            api_keys=self.config.get("api_keys") or {},
             base_url=self.config.get("backend_url"),
             **llm_kwargs,
         )
 
-        self.deep_thinking_llm = deep_client.get_llm()
-        self.quick_thinking_llm = quick_client.get_llm()
+        self.llm_provider_used = deep_provider
+        if deep_provider != self.config["llm_provider"]:
+            logger.warning(
+                "provider %s không khả dụng - đang dùng fallback %s (health: %s)",
+                self.config["llm_provider"], deep_provider, provider_health_snapshot(),
+            )
+
+        self.deep_thinking_llm = deep_llm
+        self.quick_thinking_llm = quick_llm
 
         self.memory_log = TradingMemoryLog(self.config)
 

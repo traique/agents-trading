@@ -11,6 +11,7 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_LLM_PROVIDER":         "llm_provider",
     "TRADINGAGENTS_DEEP_THINK_LLM":       "deep_think_llm",
     "TRADINGAGENTS_QUICK_THINK_LLM":      "quick_think_llm",
+    "TRADINGAGENTS_LLM_PROVIDER_FALLBACKS": "llm_provider_fallbacks",
     "TRADINGAGENTS_LLM_BACKEND_URL":      "backend_url",
     "TRADINGAGENTS_OUTPUT_LANGUAGE":      "output_language",
     "TRADINGAGENTS_MAX_DEBATE_ROUNDS":    "max_debate_rounds",
@@ -53,6 +54,8 @@ def _coerce(value: str, reference):
         return int(value)
     if isinstance(reference, float):
         return float(value)
+    if isinstance(reference, list):
+        return [item.strip() for item in value.split(",") if item.strip()]
     return value
 
 
@@ -82,6 +85,10 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "llm_provider": "openai",
     "deep_think_llm": "gpt-5.6",
     "quick_think_llm": "gpt-5.6-luna",
+    # Dự phòng khi provider chính build thất bại (key sai, hết quota...):
+    # list hoặc chuỗi phân tách bởi dấu phẩy. Fallback dùng model mặc định
+    # đầu tiên trong catalog của provider đó, key lấy từ config["api_keys"].
+    "llm_provider_fallbacks": [],
     # When None, each provider's client falls back to its own default endpoint
     # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
     # The CLI overrides this per provider when the user picks one. Keeping a

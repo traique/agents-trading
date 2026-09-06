@@ -527,22 +527,41 @@ class ResearchAgentRunner:
                         },
                     )
 
-                    client_kwargs = {
-                        "provider": map_provider_for_client(self.config.get("llm_provider", "openai")),
-                        "model": self.config.get("deep_think_llm", "gpt-4o"),
-                        "api_key": self.config.get("api_key"),
-                        "base_url": self.config.get("backend_url"),
-                    }
-                    # Provider generic openai_compatible cho phép chạy keyless
-                    # nhưng SDK OpenAI vẫn cần một chuỗi key bất kỳ.
-                    if client_kwargs["provider"] == "openai_compatible" and not client_kwargs["api_key"]:
-                        client_kwargs["api_key"] = "ollama"
-                    if "azure_endpoint" in self.config:
-                        client_kwargs["azure_endpoint"] = self.config["azure_endpoint"]
-                    if "azure_deployment" in self.config:
-                        client_kwargs["azure_deployment"] = self.config["azure_deployment"]
+                    # Synthesis chạy sau khi pipeline xong - cũng đi qua
+                    # provider chain để kế thừa failover + cooldown.
+                    try:
+                        from tradingagents.llm_clients import (
+                            create_client_with_fallback,
+                            normalize_chain,
+                        )
 
-                    llm_client = create_llm_client(**client_kwargs).get_llm()
+                        chain = normalize_chain(
+                            map_provider_for_client(self.config.get("llm_provider", "openai")),
+                            self.config.get("llm_provider_fallbacks"),
+                        )
+                        _, synthesis_llm = create_client_with_fallback(
+                            chain,
+                            model=self.config.get("deep_think_llm", "gpt-4o"),
+                            mode="deep",
+                            api_keys=self.config.get("api_keys") or {},
+                            base_url=self.config.get("backend_url"),
+                        )
+                    except ImportError:
+                        client_kwargs = {
+                            "provider": map_provider_for_client(self.config.get("llm_provider", "openai")),
+                            "model": self.config.get("deep_think_llm", "gpt-4o"),
+                            "api_key": self.config.get("api_key"),
+                            "base_url": self.config.get("backend_url"),
+                        }
+                        # Provider generic openai_compatible cho phép chạy keyless
+                        # nhưng SDK OpenAI vẫn cần một chuỗi key bất kỳ.
+                        if client_kwargs["provider"] == "openai_compatible" and not client_kwargs["api_key"]:
+                            client_kwargs["api_key"] = "ollama"
+                        if "azure_endpoint" in self.config:
+                            client_kwargs["azure_endpoint"] = self.config["azure_endpoint"]
+                        if "azure_deployment" in self.config:
+                            client_kwargs["azure_deployment"] = self.config["azure_deployment"]
+                        synthesis_llm = create_llm_client(**client_kwargs).get_llm()
 
                     trader_plan = final_state.get("trader_investment_plan", "")
                     # investment_debate_state.judge_decision = Research Manager's verdict
@@ -595,7 +614,7 @@ Use your tools ONLY to fetch the current live price and date to ground the repor
                         search_web,
                         scrape_links,
                     ]
-                    react_agent = create_react_agent(llm_client, tools=eval_tools)
+                    react_agent = create_react_agent(synthesis_llm, tools=eval_tools)
 
                     result = react_agent.invoke({"messages": [("user", eval_prompt)]})
                     final_msg = result["messages"][-1]
@@ -612,7 +631,7 @@ Use your tools ONLY to fetch the current live price and date to ground the repor
                         agent_eval_text = str(final_msg.content)
 
                     # 2. Extract structured JSON using the agent_eval_text as additional context
-                    structured_llm = llm_client.with_structured_output(
+                    structured_llm = synthesis_llm.with_structured_output(
                         ReportExtractionSchema
                     )
 
