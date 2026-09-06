@@ -1,0 +1,29 @@
+import os
+import logging
+from langchain_core.tools import tool
+
+logger = logging.getLogger(__name__)
+
+@tool
+def get_user_guide() -> str:
+    """
+    Retrieves the official documentation and system manual for the TradingAgents framework.
+    Use cases:
+    - "How do I use this system?" -> get_user_guide()
+    - "What are the capabilities of the agents?" -> get_user_guide()
+    """
+    try:
+        # Locate the user_guide.md from the data directory
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        # app/agent_core/tools/ -> app/agent_core/
+        agent_core_dir = os.path.dirname(current_dir)
+        readme_path = os.path.join(agent_core_dir, "data", "user_guide.md")
+        
+        if os.path.exists(readme_path):
+            with open(readme_path, "r", encoding="utf-8") as f:
+                return f.read()
+        else:
+            return "User guide not found on the server."
+    except Exception as e:
+        logger.error(f"Failed to read user guide: {e}")
+        return "Failed to load the user guide."

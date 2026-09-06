@@ -1,0 +1,50 @@
+# Blueprint Render - deploy toàn bộ stack lên free tier.
+# Tạo service từ repo này: Render Dashboard → New → Blueprint, trỏ về
+# github.com/traique/agents-trading. Các biến có `sync: false` sẽ được hỏi
+# giá trị lúc apply (điền Mongo Atlas URI từ bước trong DEPLOY_RENDER.md).
+services:
+  # Backend FastAPI + tradingagents
+  - type: web
+    name: agents-trading-be
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -e . && pip install -e ./trading-be
+    startCommand: cd trading-be && alembic upgrade head && python scripts/seed_admin.py && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEFAULT_ADMIN_EMAIL
+        value: admin@tradingagents.com
+      - key: DEFAULT_ADMIN_PASSWORD
+        generateValue: true
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        value: trading_agents_logs
+      - key: ALLOWED_ORIGINS
+        value: https://agents-trading-ui.onrender.com
+      - key: TRADINGAGENTS_LLM_PROVIDER
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Frontend Next.js
+  - type: web
+    name: agents-trading-ui
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: trading-ui
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22.11.0"
+      # NEXT_PUBLIC_* được bake vào bundle lúc build - đổi giá trị này phải
+      # trigger "Clear build cache & deploy" để UI nhận URL backend mới.
+      - key: NEXT_PUBLIC_API_URL
+        value: https://agents-trading-be.onrender.com/api/v1
