@@ -12,7 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: corepack enable
+      # Pin đúng version pnpm như trading-ui/Dockerfile - corepack mặc định
+      # cài pnpm mới nhất, nơi onlyBuiltDependencies đã đổi vị trí và
+      # build scripts bị chặn trở thành lỗi fatal (ERR_PNPM_IGNORED_BUILDS).
+      - run: npm install -g pnpm@10.15.1
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
