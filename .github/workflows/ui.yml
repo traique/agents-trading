@@ -1,0 +1,25 @@
+name: ui-build
+
+on:
+  push:
+    branches: [main]
+    paths: ["trading-ui/**"]
+  pull_request:
+    paths: ["trading-ui/**"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: trading-ui/pnpm-lock.yaml
+      - run: corepack enable && pnpm install --frozen-lockfile
+        working-directory: trading-ui
+      - run: pnpm build
+        working-directory: trading-ui
+        env:
+          NEXT_PUBLIC_API_URL: https://agents-trading-be.onrender.com/api/v1

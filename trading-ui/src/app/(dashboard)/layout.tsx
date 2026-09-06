@@ -33,6 +33,7 @@ export default function DashboardLayout({
       } as React.CSSProperties}
       className={`h-svh overflow-hidden ${config.collapsible === "none" ? "sidebar-none-mode" : ""}`}
     >
+      <div className="ambient-bg" />
       {config.side === "left" ? (
         <>
           <AppSidebar

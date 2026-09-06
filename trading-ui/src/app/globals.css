@@ -68,15 +68,20 @@
   --chart-3: #8b5cf6;
   --chart-4: #ec4899;
   --chart-5: #10b981;
-  --radius: 0.5rem;
-  --sidebar: #ffffff;
+  --radius: 1rem;
+  --sidebar: rgba(255, 255, 255, 0.55);
   --sidebar-foreground: #111827;
   --sidebar-primary: #06b6d4;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f5f9;
   --sidebar-accent-foreground: #111827;
-  --sidebar-border: #e2e8f0;
+  --sidebar-border: rgba(226, 232, 240, 0.6);
   --sidebar-ring: #06b6d4;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-strong: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 8px 32px rgba(17, 24, 39, 0.08);
 }
 
 .dark {
@@ -104,14 +109,19 @@
   --chart-3: #ec4899;
   --chart-4: #3b82f6;
   --chart-5: #10b981;
-  --sidebar: #0d0d12;
+  --sidebar: rgba(18, 18, 24, 0.55);
   --sidebar-foreground: #e2e8f0;
   --sidebar-primary: #00f0ff;
   --sidebar-primary-foreground: #0a0a0f;
   --sidebar-accent: #1e1e2d;
   --sidebar-accent-foreground: #e2e8f0;
-  --sidebar-border: #1f1f2e;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #00f0ff;
+  --glass-bg: rgba(20, 20, 28, 0.55);
+  --glass-bg-strong: rgba(24, 24, 34, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-highlight: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 @layer base {
@@ -291,4 +301,69 @@ html {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 240, 255, 0.8);
+}
+
+/* ===== Liquid Glass (iOS-style) ===== */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  border-radius: calc(var(--radius) + 8px);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  border-radius: calc(var(--radius) + 8px);
+}
+
+/* Nền ambient cho dashboard - gradient mesh kiểu wallpaper iOS để các panel
+   glass có gì đó để khúc xạ */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(640px circle at 15% 18%, rgba(6, 182, 212, 0.16), transparent 60%),
+    radial-gradient(720px circle at 85% 12%, rgba(139, 92, 246, 0.13), transparent 60%),
+    radial-gradient(800px circle at 72% 88%, rgba(16, 185, 129, 0.1), transparent 60%);
+}
+
+.dark .ambient-bg {
+  background:
+    radial-gradient(640px circle at 15% 18%, rgba(0, 240, 255, 0.12), transparent 60%),
+    radial-gradient(720px circle at 85% 12%, rgba(139, 92, 246, 0.14), transparent 60%),
+    radial-gradient(800px circle at 72% 88%, rgba(16, 185, 129, 0.08), transparent 60%);
+}
+
+/* Sidebar tràn trong suốt - var --sidebar đã là rgba, thêm blur ở đây */
+[data-slot="sidebar-container"] {
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ===== Bento Grid ===== */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  grid-auto-rows: minmax(140px, auto);
+}
+@media (max-width: 1023px) {
+  .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 639px) {
+  .bento { grid-template-columns: 1fr; }
+}
+.bento-2 { grid-column: span 2; }
+.bento-tall { grid-row: span 2; }
+.bento-wide { grid-column: span 3; }
+@media (max-width: 639px) {
+  .bento-2, .bento-wide { grid-column: span 1; }
 }

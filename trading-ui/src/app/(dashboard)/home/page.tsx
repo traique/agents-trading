@@ -1,16 +1,15 @@
 "use client"
 
 import React, { useState } from "react"
-import { 
-  Bot, 
-  Brain, 
-  Coins, 
-  Cpu, 
-  LineChart, 
-  Play, 
-  ShieldCheck, 
+import {
+  Bot,
+  Brain,
+  Coins,
+  Cpu,
+  LineChart,
+  Play,
+  ShieldCheck,
   Users,
-  Terminal,
   ChevronRight,
   Sparkles,
   Database,
@@ -19,47 +18,66 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import Link from "next/link"
 import { useLanguage } from "@/contexts/language-context"
 import { useAuthStore } from "@/store/authStore"
 
-// Steps mapping for Workflow Diagram (translated dynamically)
 const WORKFLOW_STEPS = [
   {
     id: "data",
     icon: Database,
     color: "from-blue-500 to-cyan-500 animate-pulse",
-    glow: "shadow-blue-500/20"
   },
   {
     id: "analysts",
     icon: Users,
     color: "from-cyan-500 to-teal-500",
-    glow: "shadow-cyan-500/20",
-    subAgents: ["Fundamentals Analyst", "Sentiment Analyst", "News Analyst", "Technical Analyst"]
+    subAgents: ["Fundamentals Analyst", "Sentiment Analyst", "News Analyst", "Technical Analyst"],
   },
   {
     id: "researchers",
     icon: Brain,
     color: "from-purple-500 to-pink-500",
-    glow: "shadow-purple-500/20",
-    subAgents: ["Bull Researcher", "Bear Researcher", "Research Manager"]
+    subAgents: ["Bull Researcher", "Bear Researcher", "Research Manager"],
   },
   {
     id: "risk",
     icon: ShieldCheck,
     color: "from-orange-500 to-red-500",
-    glow: "shadow-orange-500/20",
-    subAgents: ["Trader Agent", "Risk Management", "Portfolio Manager"]
+    subAgents: ["Trader Agent", "Risk Management", "Portfolio Manager"],
   },
   {
     id: "exchange",
     icon: Coins,
     color: "from-green-500 to-emerald-500",
-    glow: "shadow-green-500/20"
-  }
+  },
+]
+
+const TEAM_CARDS = [
+  {
+    href: "teamAnalyst",
+    icon: LineChart,
+    tint: "text-cyan-600 dark:text-cyan-400",
+    ring: "bg-cyan-500/10 border-cyan-500/20",
+  },
+  {
+    href: "teamResearch",
+    icon: Brain,
+    tint: "text-purple-600 dark:text-purple-400",
+    ring: "bg-purple-500/10 border-purple-500/20",
+  },
+  {
+    href: "teamTrader",
+    icon: Bot,
+    tint: "text-orange-600 dark:text-orange-400",
+    ring: "bg-orange-500/10 border-orange-500/20",
+  },
+  {
+    href: "teamPortfolio",
+    icon: ShieldCheck,
+    tint: "text-emerald-600 dark:text-emerald-400",
+    ring: "bg-emerald-500/10 border-emerald-500/20",
+  },
 ]
 
 function getInitials(email: string): string {
@@ -86,118 +104,93 @@ export default function HomeIntroPage() {
   const initials = user?.email ? getInitials(user.email) : "T"
   const greeting = getGreeting()
 
+  const current = WORKFLOW_STEPS.find((s) => s.id === activeStep) ?? WORKFLOW_STEPS[0]
+  const CurrentIcon = current.icon
+
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto custom-scrollbar p-6 bg-background/30 relative">
-      <div className="cyber-grid pointer-events-none absolute inset-0 z-0" />
-      
-      <div className="relative z-10 space-y-8 max-w-6xl mx-auto w-full pb-12">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card/20 backdrop-blur-md p-8 md:p-12 shadow-[inset_0_0_30px_rgba(0,240,255,0.05)]">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-          
-          {/* User Greeting Card */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-14 w-14 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
-                  <AvatarFallback className="bg-gradient-to-br from-primary/80 to-cyan-600 text-background font-black text-lg">
+    <div className="h-full w-full overflow-y-auto custom-scrollbar p-6">
+      <div className="mx-auto w-full max-w-6xl pb-12 space-y-6">
+        <div className="bento">
+          {/* Hero */}
+          <div className="bento-2 glass p-7 relative overflow-hidden">
+            <div className="absolute -top-16 -right-16 w-64 h-64 bg-primary/15 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative flex h-full flex-col justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-cyan-600 text-sm font-black text-white shadow-lg">
                     {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-background" title="Online" />
+                  </div>
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-400 dark:border-[#1a1a22]" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">{greeting},</p>
+                  <h2 className="text-lg font-semibold capitalize tracking-tight">{displayName}</h2>
+                </div>
+                <div className="ml-auto hidden items-center gap-2 md:flex">
+                  <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <Activity className="h-3 w-3 animate-pulse" /> Online
+                  </span>
+                  <span className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                    <TrendingUp className="h-3 w-3" /> AI Ready
+                  </span>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground font-medium">{greeting},</p>
-                <h2 className="text-xl font-black text-foreground tracking-tight capitalize">{displayName} 👋</h2>
-                {user?.email && (
-                  <p className="text-xs text-muted-foreground/70 font-mono mt-0.5">{user.email}</p>
-                )}
+
+              <div className="space-y-4">
+                <Badge variant="outline" className="border-primary/30 bg-primary/5 px-3 py-1 text-primary">
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" /> {t("home.badge")}
+                </Badge>
+                <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+                  {t("home.title")}
+                </h1>
+                <p className="max-w-xl leading-relaxed text-muted-foreground">
+                  {t("home.description")}
+                </p>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <Button asChild size="lg" className="rounded-full px-6 shadow-lg shadow-primary/25">
+                    <Link href="/research" className="flex items-center gap-2">
+                      <Play className="h-4 w-4 fill-current" /> {t("home.runSim")}
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="rounded-full px-6">
+                    <Link href="/jobs" className="flex items-center gap-2">
+                      {t("home.manageSchedules")}
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="hidden md:flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                <Activity className="w-3 h-3 animate-pulse" />
-                System Online
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium">
-                <TrendingUp className="w-3 h-3" />
-                AI Ready
-              </div>
+          {/* Workflow */}
+          <div className="bento-2 bento-tall glass p-7 flex flex-col">
+            <div>
+              <h3 className="text-lg font-semibold tracking-tight">{t("home.workflowTitle")}</h3>
+              <p className="text-sm text-muted-foreground">{t("home.workflowDesc")}</p>
             </div>
-          </div>
 
-          <div className="max-w-2xl space-y-4">
-            <Badge variant="outline" className="border-primary/40 text-primary bg-primary/5 px-3 py-1 font-mono tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5 animate-spin" /> {t("home.badge")}
-            </Badge>
-            
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-foreground via-foreground to-primary bg-clip-text text-transparent">
-              {t("home.title")}
-            </h1>
-            
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              {t("home.description")}
-            </p>
-            
-            <div className="flex flex-wrap gap-4 pt-2">
-              <Button asChild className="bg-primary hover:bg-primary/95 text-background font-bold shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-                <Link href="/research" className="flex items-center gap-2">
-                  <Play className="w-4 h-4 fill-current" /> {t("home.runSim")}
-                </Link>
-              </Button>
-              <Button asChild variant="outline" className="border-primary/20 hover:bg-primary/5 text-foreground">
-                <Link href="/jobs" className="flex items-center gap-2">
-                  <Terminal className="w-4 h-4" /> {t("home.manageSchedules")}
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Workflow Diagram & Architecture */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {t("home.workflowTitle")}
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              {t("home.workflowDesc")}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-            {/* Interactive Steps */}
-            <div className="lg:col-span-2 flex flex-col justify-between space-y-4 p-6 rounded-2xl border border-border/50 bg-card/10 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-              
-              {/* Nodes Map */}
-              <div className="relative flex flex-col md:flex-row items-center justify-between gap-4 md:gap-2 pt-6 pb-4">
+            <div className="mt-6 flex flex-1 flex-col items-center justify-between gap-3">
+              <div className="flex w-full flex-col items-center gap-3 md:flex-row md:justify-between md:gap-1">
                 {WORKFLOW_STEPS.map((step, idx) => {
                   const Icon = step.icon
                   const isActive = activeStep === step.id
                   return (
                     <React.Fragment key={step.id}>
-                      {/* Connection Line */}
                       {idx > 0 && (
-                        <div className="hidden md:block flex-1 h-[2px] bg-gradient-to-r from-primary/30 to-primary/50 relative">
-                          <div className="absolute inset-0 bg-primary/80 animate-ping opacity-20" />
-                        </div>
+                        <div className="hidden h-px flex-1 bg-gradient-to-r from-border to-primary/40 md:block" />
                       )}
-                      
-                      {/* Node Button */}
                       <button
                         onClick={() => setActiveStep(step.id)}
-                        className={`relative z-10 flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 w-28 text-center group ${
-                          isActive 
-                            ? "bg-primary/20 border-primary shadow-[0_0_20px_rgba(0,240,255,0.15)] scale-105"
-                            : "bg-background/80 border-border/50 hover:border-primary/40 hover:scale-102"
+                        className={`flex w-24 flex-col items-center gap-2 rounded-2xl border p-3 transition-all duration-300 ${
+                          isActive
+                            ? "border-primary/50 bg-primary/10 shadow-lg shadow-primary/10 scale-105"
+                            : "border-transparent bg-muted/30 hover:bg-muted/50"
                         }`}
                       >
-                        <div className={`p-2.5 rounded-lg bg-gradient-to-br ${step.color} text-background mb-2 shadow-lg`}>
-                          <Icon className="w-5 h-5" />
+                        <div className={`rounded-xl bg-gradient-to-br ${step.color} p-2 text-white shadow-md`}>
+                          <Icon className="h-4 w-4" />
                         </div>
-                        <span className="text-[11px] font-bold tracking-tight uppercase group-hover:text-primary transition-colors">
+                        <span className="text-[11px] font-medium leading-tight">
                           {t(`home.step.${step.id}.label` as any)}
                         </span>
                       </button>
@@ -206,135 +199,85 @@ export default function HomeIntroPage() {
                 })}
               </div>
 
-              {/* Active Step Panel */}
-              {(() => {
-                const current = WORKFLOW_STEPS.find(s => s.id === activeStep)!
-                const StepIcon = current.icon
-                return (
-                  <div className="mt-4 p-5 rounded-xl border border-primary/20 bg-black/40 min-h-[140px] flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <StepIcon className="w-5 h-5 text-primary" />
-                        <h3 className="font-bold text-base text-primary">{t(`home.step.${current.id}.label` as any)}</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {t(`home.step.${current.id}.desc` as any)}
-                      </p>
+              <div className="w-full rounded-2xl border border-border/60 bg-background/40 p-5 min-h-[150px] flex flex-col justify-between">
+                <div>
+                  <div className="mb-2 flex items-center gap-2">
+                    <CurrentIcon className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold">{t(`home.step.${current.id}.label` as any)}</h4>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {t(`home.step.${current.id}.desc` as any)}
+                  </p>
+                </div>
+                {current.subAgents && (
+                  <div className="mt-4 border-t border-border/40 pt-3">
+                    <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {t("home.activeAgents")}
                     </div>
-
-                    {current.subAgents && (
-                      <div className="mt-4 pt-3 border-t border-border/20">
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">
-                          {t("home.activeAgents")}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {current.subAgents.map(sa => (
-                            <Badge key={sa} variant="outline" className="bg-primary/5 border-primary/20 text-xs px-2 py-0.5 text-primary font-mono">
-                              {sa}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {current.subAgents.map((sa) => (
+                        <Badge
+                          key={sa}
+                          variant="outline"
+                          className="bg-primary/5 border-primary/20 px-2 py-0.5 text-xs text-primary"
+                        >
+                          {sa}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                )
-              })()}
-            </div>
-
-            {/* Quick Summary Sidebar */}
-            <div className="flex flex-col justify-between p-6 rounded-2xl border border-border/50 bg-card/10 backdrop-blur-sm">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Cpu className="w-5 h-5 text-cyan-400" />
-                  <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t("home.techTitle")}</h3>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="p-3.5 rounded-xl bg-muted/20 border border-border/30">
-                    <h4 className="font-bold text-xs text-foreground mb-1">{t("home.techState")}</h4>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {t("home.techStateDesc")}
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-muted/20 border border-border/30">
-                    <h4 className="font-bold text-xs text-foreground mb-1">{t("home.techMemory")}</h4>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {t("home.techMemoryDesc")}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border/30 mt-4">
-                <Link href="/research" className="text-xs text-primary flex items-center gap-1 hover:underline">
-                  {t("home.goConsole")} <ChevronRight className="w-3 h-3" />
-                </Link>
+                )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Roles Breakdown */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">
-              {t("home.teamsTitle")}
-            </h2>
-            <p className="text-muted-foreground text-sm">
-              {t("home.teamsDesc")}
-            </p>
+          {/* Tech stack */}
+          <div className="glass p-6 flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Cpu className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("home.techTitle")}
+                </h3>
+              </div>
+              <div className="space-y-3">
+                <div className="rounded-xl bg-muted/40 p-3.5">
+                  <h4 className="mb-1 text-xs font-semibold">{t("home.techState")}</h4>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {t("home.techStateDesc")}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-muted/40 p-3.5">
+                  <h4 className="mb-1 text-xs font-semibold">{t("home.techMemory")}</h4>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {t("home.techMemoryDesc")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Link
+              href="/research"
+              className="mt-4 flex items-center gap-1 border-t border-border/40 pt-3 text-xs text-primary hover:underline"
+            >
+              {t("home.goConsole")} <ChevronRight className="h-3 w-3" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-5 border-border/50 bg-card/30 hover:border-primary/30 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 text-cyan-400">
-                  <LineChart className="w-5 h-5" />
+          {/* Team cards - 4 ô nhỏ hàng dưới */}
+          {TEAM_CARDS.map((card) => {
+            const Icon = card.icon
+            return (
+              <div key={card.href} className="glass p-5 flex flex-col gap-3 transition-transform hover:-translate-y-0.5">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${card.ring}`}>
+                  <Icon className={`h-5 w-5 ${card.tint}`} />
                 </div>
-                <h3 className="font-bold text-sm">{t("home.teamAnalystTitle")}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("home.teamAnalystDesc")}
+                <h3 className="text-sm font-semibold">{t(`home.${card.href}Title` as any)}</h3>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {t(`home.${card.href}Desc` as any)}
                 </p>
               </div>
-            </Card>
-
-            <Card className="p-5 border-border/50 bg-card/30 hover:border-primary/30 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-400">
-                  <Brain className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm">{t("home.teamResearchTitle")}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("home.teamResearchDesc")}
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-5 border-border/50 bg-card/30 hover:border-primary/30 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 text-orange-400">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm">{t("home.teamTraderTitle")}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("home.teamTraderDesc")}
-                </p>
-              </div>
-            </Card>
-
-            <Card className="p-5 border-border/50 bg-card/30 hover:border-primary/30 transition-all flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20 text-green-400">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold text-sm">{t("home.teamPortfolioTitle")}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t("home.teamPortfolioDesc")}
-                </p>
-              </div>
-            </Card>
-          </div>
+            )
+          })}
         </div>
       </div>
     </div>
