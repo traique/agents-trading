@@ -155,6 +155,7 @@ class TradingAgentsGraph:
         self.quick_thinking_llm = quick_llm
 
         self.memory_log = TradingMemoryLog(self.config)
+        self._learning = self._build_learning_context()
 
         # Create tool nodes
         self.tool_nodes = self._create_tool_nodes()
@@ -298,6 +299,24 @@ class TradingAgentsGraph:
                 ]
             ),
         }
+
+    def _build_learning_context(self) -> str:
+        """Bảng tự đánh giá từ các quyết định đã resolve (vòng tự học IC).
+
+        Ghi snapshot ``rolling_ic.json`` vào cache mỗi lần khởi tạo graph và
+        trả về markdown tóm tắt hit-rate theo rating (rỗng khi chưa đủ mẫu —
+        ngưỡng nằm trong :func:`tradingagents.consensus.learning.learning_summary`).
+        """
+        try:
+            from tradingagents.consensus import learning_summary, rating_accuracy, write_rolling_ic
+
+            entries = self.memory_log.load_entries()
+            stats = rating_accuracy(entries)
+            write_rolling_ic(entries, self.config.get("data_cache_dir"), stats=stats)
+            return learning_summary(entries, stats=stats)
+        except Exception:
+            logger.debug("learning context build failed", exc_info=True)
+            return ""
 
     def _resolve_benchmark(self, ticker: str) -> str:
         """Pick the benchmark ticker for alpha calculation against ``ticker``.
@@ -471,6 +490,9 @@ class TradingAgentsGraph:
 
         # Resolve any pending memory-log entries for this ticker before the pipeline runs.
         self._resolve_pending_entries(company_name)
+        # Refresh the self-evaluation block after settling pending outcomes so
+        # this run sees up-to-date hit-rate statistics.
+        self._learning = self._build_learning_context()
 
         with self.checkpoint_scope(company_name, trade_date, asset_type) as thread_id_value:
             return self._run_graph(
@@ -566,6 +588,10 @@ class TradingAgentsGraph:
         past_context = self.memory_log.get_past_context(
             company_name, as_of=self._memory_as_of(trade_date)
         )
+        if self._learning:
+            past_context = (
+                f"{past_context}\n\n{self._learning}" if past_context else self._learning
+            )
         instrument_context = self.resolve_instrument_context(company_name, asset_type)
         init_agent_state = self.propagator.create_initial_state(
             company_name,

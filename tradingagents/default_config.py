@@ -80,7 +80,9 @@ DEFAULT_CONFIG = _apply_env_overrides({
     # Optional cap on the number of resolved memory log entries. When set,
     # the oldest resolved entries are pruned once this limit is exceeded.
     # Pending entries are never pruned. None disables rotation entirely.
-    "memory_log_max_entries": None,
+    # 500: load_entries parse toàn bộ file mỗi lần chạy — không rotation thì
+    # file phình vô hạn và mỗi scheduled run trả phí O(size) CPU/RAM.
+    "memory_log_max_entries": 500,
     # LLM settings
     "llm_provider": "openai",
     "deep_think_llm": "gpt-5.6",

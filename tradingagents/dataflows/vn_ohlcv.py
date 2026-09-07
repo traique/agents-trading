@@ -221,10 +221,25 @@ def _fetch_vnstock(symbol: str, start_date: str, end_date: str) -> OhlcvSeries:
 
 def fetch_vn_ohlcv(symbol: str, start_date: str, end_date: str) -> OhlcvSeries:
     """Chuỗi dự phòng DNSE → vnstock/VCI → TCBS. `source` của series trả về
-    cho biết nguồn thắng; 'unavailable' nghĩa là tất cả đều thất bại."""
+    cho biết nguồn thắng; 'unavailable' nghĩa là tất cả đều thất bại.
+
+    Kết quả của từng tầng được ghi vào provider-health stats để UI/api
+    có thể hiển thị nguồn nào đang chết (tradingagents.dataflows.provider_health).
+    """
+    from .provider_health import record_provider_probe
+
+    def _probe(source: str, series: OhlcvSeries, errors: list[str]) -> None:
+        ok = series.source != "unavailable" and not errors
+        record_provider_probe(
+            source, ok,
+            detail=None if ok else "; ".join(errors or ["empty"]),
+            symbol=symbol,
+        )
+
     for fetch in (_fetch_dnse, _fetch_vnstock):
         series = fetch(symbol, start_date, end_date)
         errors = validate_ohlcv(series)
+        _probe(series.source, series, errors)
         if series.source != "unavailable" and not errors:
             return series
         logger.warning("%s unusable cho %s (%s), thử nguồn kế tiếp",
@@ -233,6 +248,7 @@ def fetch_vn_ohlcv(symbol: str, start_date: str, end_date: str) -> OhlcvSeries:
 
     df = _fetch_tcbs_ohlcv(symbol, start_date, end_date)
     if df is None or df.empty:
+        _probe("tcbs", OhlcvSeries(symbol=symbol), ["empty"])
         return OhlcvSeries(symbol=symbol)
     series = OhlcvSeries(
         symbol=symbol,
@@ -243,6 +259,7 @@ def fetch_vn_ohlcv(symbol: str, start_date: str, end_date: str) -> OhlcvSeries:
         source="tcbs",
     )
     errors = validate_ohlcv(series)
+    _probe("tcbs", series, errors)
     if errors:
         logger.warning("tcbs unusable cho %s (%s)", symbol, errors)
         return OhlcvSeries(symbol=symbol)
