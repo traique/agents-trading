@@ -99,12 +99,78 @@ class JobRepository:
                 mapped_history.append("warning")
             else:
                 mapped_history.append("none")
-                
+
         mapped_history.reverse() # Oldest first, newest last
         while len(mapped_history) < 7:
             mapped_history.insert(0, "none")
-            
+
         return mapped_history
+
+    async def get_history_map(self, job_ids: List[int], per_job: int = 7) -> dict:
+        """History đã map cho nhiều job trong 1 query (tránh N+1).
+
+        Trả về ``{job_id: [status_mapped_x7]}`` — mỗi job đủ 7 phần tử
+        (pad "none"), thứ tự cũ → mới như ``get_job_history``.
+        """
+        from sqlalchemy import func
+        from app.routers.v1.agent_reports.models.relational import Report
+
+        if not job_ids:
+            return {}
+        # Row number theo report_date giảm dần trong từng job, rồi giữ top N.
+        row_num = (
+            func.row_number()
+            .over(
+                partition_by=Report.job_id,
+                order_by=Report.report_date.desc(),
+            )
+            .label("rn")
+        )
+        subq = (
+            select(Report.job_id, Report.status, row_num)
+            .where(Report.job_id.in_(job_ids))
+            .subquery()
+        )
+        stmt = (
+            select(subq.c.job_id, subq.c.status)
+            .where(subq.c.rn <= per_job)
+            .order_by(subq.c.job_id, subq.c.rn)
+        )
+        result = await self.db.execute(stmt)
+
+        mapped: dict = {}
+        for job_id, status in result.all():
+            if status == "completed":
+                s = "success"
+            elif status == "failed":
+                s = "failed"
+            elif status == "warning":
+                s = "warning"
+            else:
+                s = "none"
+            mapped.setdefault(job_id, []).append(s)
+        # Chuẩn hoá: reverse (cũ → mới) + pad đúng per_job phần tử.
+        out = {jid: (list(reversed(mapped.get(jid, []))) + ["none"] * per_job)[:per_job]
+               for jid in job_ids}
+        return out
+
+    async def get_last_run_map(self, job_ids: List[int]) -> dict:
+        """Report date mới nhất cho nhiều job trong 1 query: {job_id: "YYYY-MM-DD HH:MM"}."""
+        from sqlalchemy import func
+        from app.routers.v1.agent_reports.models.relational import Report
+
+        if not job_ids:
+            return {}
+        stmt = (
+            select(Report.job_id, func.max(Report.report_date))
+            .where(Report.job_id.in_(job_ids))
+            .group_by(Report.job_id)
+        )
+        result = await self.db.execute(stmt)
+        return {
+            job_id: dt.strftime("%Y-%m-%d %H:%M") if dt else "Never"
+            for job_id, dt in result.all()
+        }
 
     async def get_latest_report_date(self, job_id: int) -> Optional[str]:
         from app.routers.v1.agent_reports.models.relational import Report

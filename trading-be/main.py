@@ -6,6 +6,7 @@ from app.routers.v1 import api_router
 from contextlib import asynccontextmanager
 
 from app.core.mongo import connect_to_mongo, close_mongo_connection
+from app.services.job_scheduler import start_scheduler, stop_scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,8 +22,14 @@ async def lifespan(app: FastAPI):
             "MongoDB connect failed at %s - agent logs sẽ không được lưu", settings.MONGO_URI,
             exc_info=True,
         )
+    # Scheduled jobs: background loop quét job active đến hạn mỗi 60s
+    # (tắt bằng env JOBS_SCHEDULER_ENABLED=false cho môi trường chỉ API).
+    import os
+    if os.getenv("JOBS_SCHEDULER_ENABLED", "true").lower() != "false":
+        start_scheduler()
     yield
     # Shutdown logic
+    await stop_scheduler()
     await close_mongo_connection()
 
 app = FastAPI(

@@ -18,3 +18,7 @@ api_router.include_router(config_router)
 api_router.include_router(agent_reports_router, prefix="/agent_reports", tags=["Agent Reports"])
 api_router.include_router(jobs_router, prefix="/jobs", tags=["Jobs"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])
+
+from app.routers.v1.system.controllers import router as system_router
+
+api_router.include_router(system_router, prefix="/system", tags=["System"])

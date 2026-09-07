@@ -15,7 +15,9 @@ from beanie import init_beanie
 from app.routers.v1.agent_reports.models.non_relational import AgentLog, TokenUsage
 
 async def connect_to_mongo():
-    db_client.client = AsyncIOMotorClient(settings.MONGO_URI)
+    # serverSelectionTimeoutMS ngắn: Mongo chỉ phục vụ agent logs, thiếu Mongo
+    # không được treo boot 20-30s (mặc định motor) — fail nhanh rồi app vẫn chạy.
+    db_client.client = AsyncIOMotorClient(settings.MONGO_URI, serverSelectionTimeoutMS=3000)
     db_client.db = db_client.client[settings.MONGO_DB]
     
     # Initialize Beanie with the Document models

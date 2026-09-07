@@ -293,6 +293,18 @@ class ResearchAgentRunner:
         - active_teams
         """
         self.config = {**DEFAULT_CONFIG, **config}
+        # Depth (shallow/medium/deep) điều khiển số vòng tranh biện Bull/Bear
+        # và risk debate — UI có chọn từ lâu nhưng trước đây không có gì tiêu
+        # thụ tham số này. Config tường minh trong request vẫn thắng.
+        depth_rounds = {"shallow": 1, "medium": 2, "deep": 3}.get(
+            str(self.config.get("depth", "medium")).lower(), 2
+        )
+        self.config["max_debate_rounds"] = int(
+            config.get("max_debate_rounds", depth_rounds)
+        )
+        self.config["max_risk_discuss_rounds"] = int(
+            config.get("max_risk_discuss_rounds", depth_rounds)
+        )
         # Normalize analysis_date early so the graph always gets a YYYY-MM-DD date.
         if self.config.get("analysis_date"):
             normalized_date = normalize_analysis_date(self.config["analysis_date"])
@@ -362,6 +374,12 @@ class ResearchAgentRunner:
         # Setup initial state manually to stream it chunk by chunk
         graph_runner.ticker = ticker
         past_context = graph_runner.memory_log.get_past_context(ticker)
+        if graph_runner._learning:
+            past_context = (
+                f"{past_context}\n\n{graph_runner._learning}"
+                if past_context
+                else graph_runner._learning
+            )
         instrument_context = graph_runner.resolve_instrument_context(ticker, asset_type)
         init_agent_state = graph_runner.propagator.create_initial_state(
             ticker,
@@ -404,6 +422,8 @@ class ResearchAgentRunner:
             try:
                 # Resolve pending first (as in original propagate)
                 graph_runner._resolve_pending_entries(ticker)
+                # Refresh self-evaluation stats sau khi settle pending outcomes
+                graph_runner._learning = graph_runner._build_learning_context()
 
                 final_state = (
                     init_agent_state.copy()
@@ -676,6 +696,35 @@ If numerical price fields (price, low, high) for the forecast are not explicitly
                     report_dict = result_json.model_dump()
                     final_state["structured_report"] = report_dict
 
+                    # Consensus score + Kelly sizing (deterministic, không LLM):
+                    # gộp recommendation/confidence của các agent thành điểm
+                    # đồng thuận có trọng số, rồi khuyến nghị % vị thế theo
+                    # công thức Kelly từ cặp (confidence, risk/reward). Phần
+                    # markdown chèn xuống dưới, sau khi md_lines dựng xong.
+                    consensus_md = ""
+                    try:
+                        from tradingagents.consensus import (
+                            consensus_from_outputs,
+                            position_sizing,
+                            render_consensus_markdown,
+                        )
+
+                        consensus = consensus_from_outputs(
+                            report_dict.get("agent_outputs", [])
+                        )
+                        sizing = position_sizing(
+                            report_dict.get("recommendation", "HOLD"),
+                            report_dict.get("confidence", 50),
+                            report_dict.get("risk_reward"),
+                        )
+                        report_dict["consensus"] = consensus
+                        report_dict["position_sizing"] = sizing
+                        final_state["consensus"] = consensus
+                        final_state["position_sizing"] = sizing
+                        consensus_md = render_consensus_markdown(consensus, sizing)
+                    except Exception as ce:
+                        logger.warning(f"Consensus/Kelly computation failed: {ce}")
+
                     # 3. Format JSON into Markdown and send to UI
                     cp = report_dict.get("current_price")
                     tp = report_dict.get("target_price")
@@ -736,6 +785,19 @@ If numerical price fields (price, low, high) for the forecast are not explicitly
                                 f"**{ao['agent']}** ({ao['team']} Team): {ao['recommendation']} ({ao['confidence']}%)"
                             )
                             md_lines.append(f"> {ao['summary']}\n")
+
+                    if consensus_md:
+                        # Chèn ngay sau dòng Recommendation trong summary để
+                        # nó nằm trong khối markdown gửi UI + lưu log.
+                        rec_idx = next(
+                            (i for i, l in enumerate(md_lines)
+                             if l.startswith("**Recommendation:**")),
+                            None,
+                        )
+                        if rec_idx is not None:
+                            md_lines[rec_idx + 1:rec_idx + 1] = ["", consensus_md]
+                        else:
+                            md_lines.extend(["", consensus_md])
 
                     markdown_content = "\n".join(md_lines)
 

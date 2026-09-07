@@ -8,7 +8,11 @@ class JobService:
     def __init__(self, repo: JobRepository):
         self.repo = repo
 
-    async def _format_job_response(self, job) -> JobResponse:
+    async def _format_job_response(
+        self, job,
+        history=None,
+        last_run=None,
+    ) -> JobResponse:
         from datetime import datetime, timedelta, timezone
 
         now = datetime.now(timezone.utc)
@@ -16,8 +20,10 @@ class JobService:
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
 
-        history = await self.repo.get_job_history(job.id)
-        last_run = await self.repo.get_latest_report_date(job.id)
+        if history is None:
+            history = await self.repo.get_job_history(job.id)
+        if last_run is None:
+            last_run = await self.repo.get_latest_report_date(job.id)
 
         if job.status == "paused":
             next_run = "-"
@@ -64,7 +70,20 @@ class JobService:
 
     async def get_jobs(self, user_id: int) -> List[JobResponse]:
         jobs = await self.repo.get_jobs(user_id)
-        return [await self._format_job_response(job) for job in jobs]
+        if not jobs:
+            return []
+        # Batch history + last-run cho cả danh sách (2 query thay vì 2N+1).
+        job_ids = [job.id for job in jobs]
+        history_map = await self.repo.get_history_map(job_ids)
+        last_run_map = await self.repo.get_last_run_map(job_ids)
+        return [
+            await self._format_job_response(
+                job,
+                history=history_map.get(job.id),
+                last_run=last_run_map.get(job.id, "Never"),
+            )
+            for job in jobs
+        ]
 
     async def get_job(self, job_id: int, user_id: int) -> Optional[JobResponse]:
         job = await self.repo.get_job(job_id, user_id)

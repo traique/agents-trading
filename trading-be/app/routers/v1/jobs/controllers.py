@@ -73,3 +73,32 @@ async def get_job_logs(
     if logs is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return logs
+
+@router.post("/{job_id}/run", summary="Run a job immediately (bypasses schedule)")
+async def run_job_now(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    from app.services.job_scheduler import scheduler, run_job
+    from fastapi.responses import JSONResponse
+
+    # Chỉ job của chính user mới được chạy tay.
+    from sqlalchemy import select
+    from app.core.database import AsyncSessionLocal
+    from app.routers.v1.jobs.models.relational import Job
+
+    async with AsyncSessionLocal() as session:
+        job = await session.get(Job, job_id)
+        if job is None or job.user_id != current_user.id:
+            raise HTTPException(status_code=404, detail="Job not found")
+
+    if job_id in scheduler._running_jobs:
+        return JSONResponse(
+            status_code=409,
+            content={"detail": "Job is already running"},
+        )
+
+    # Chạy nền để request không block hàng phút; UI theo dõi qua Report History.
+    scheduler._running_jobs.add(job_id)
+    scheduler._spawn(scheduler._run_job_safe(job_id))
+    return {"status": "started", "job_id": job_id}
