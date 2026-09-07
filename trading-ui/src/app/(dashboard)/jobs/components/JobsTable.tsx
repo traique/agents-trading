@@ -1,6 +1,6 @@
 import React from "react"
-import { 
-  BrainCircuit, TerminalSquare, Pause, Play, Edit, Trash2 
+import {
+  BrainCircuit, TerminalSquare, Pause, Play, Edit, Trash2, Zap, Loader2
 } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,8 @@ interface JobsTableProps {
   onToggleStatus: (id: string) => void
   onEdit: (job: TradingJob) => void
   onDelete: (id: string) => void
+  onRunNow: (id: string) => void
+  runningJobIds?: string[]
 }
 
 export const JobsTable: React.FC<JobsTableProps> = ({
@@ -28,7 +30,9 @@ export const JobsTable: React.FC<JobsTableProps> = ({
   onViewLogs,
   onToggleStatus,
   onEdit,
-  onDelete
+  onDelete,
+  onRunNow,
+  runningJobIds = []
 }) => {
   const { t } = useLanguage()
 
@@ -71,12 +75,19 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge 
-                      variant={job.status === "active" ? "default" : "secondary"} 
-                      className={job.status === "active" ? "bg-primary/20 text-primary border-primary/30" : ""}
-                    >
-                      {job.status === "active" ? (t("jobs.activeJobs").split(" ")[0]) : "Paused"}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={job.status === "active" ? "default" : "secondary"}
+                        className={job.status === "active" ? "bg-primary/20 text-primary border-primary/30" : ""}
+                      >
+                        {job.status === "active" ? (t("jobs.activeJobs").split(" ")[0]) : "Paused"}
+                      </Badge>
+                      {runningJobIds.includes(job.id) && (
+                        <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin motion-reduce:animate-none" /> Running…
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
@@ -113,29 +124,45 @@ export const JobsTable: React.FC<JobsTableProps> = ({
                         <TerminalSquare className="h-3.5 w-3.5 mr-1" /> {t("jobs.viewLogs")}
                       </Button>
 
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={() => onRunNow(job.id)}
+                        disabled={runningJobIds.includes(job.id)}
+                        aria-label="Run job now"
+                        title={runningJobIds.includes(job.id) ? "Job is running — kết quả sẽ vào Report History khi xong" : "Run now — chạy phân tích ngay, kết quả vào Report History"}
+                      >
+                        {runningJobIds.includes(job.id)
+                          ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
+                          : <Zap className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
                         onClick={() => onToggleStatus(job.id)}
+                        aria-label={job.status === "active" ? "Pause Job" : "Resume Job"}
                         title={job.status === "active" ? "Pause Job" : "Resume Job"}
                       >
                         {job.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-primary"
                         onClick={() => onEdit(job)}
+                        aria-label="Edit Job"
                         title="Edit Job"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => onDelete(job.id)}
+                        aria-label="Delete Job"
                         title="Delete Job"
                       >
                         <Trash2 className="h-4 w-4" />

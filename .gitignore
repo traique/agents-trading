@@ -227,3 +227,7 @@ __marimo__/
 
 #trading-ui
 trading-ui/node_modules
+
+# Provider health probe runtime stats (auto-generated)
+vn_provider_stats.json
+feedback/rolling_ic.json

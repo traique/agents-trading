@@ -242,6 +242,16 @@ const translations = {
     "deliveries.dialog.deliveredTo": "Delivered to",
     "deliveries.dialog.via": "via",
     "deliveries.dialog.on": "on",
+
+    // Settings - Data Health
+    "settings.dataHealth.title": "Data Source Health",
+    "settings.dataHealth.description": "Health of the VN data chain (DNSE → VCI → TCBS) — recorded on every pipeline run.",
+    "settings.dataHealth.probe": "Check now",
+    "settings.dataHealth.empty": "No stats yet — run an analysis or click Check now to probe all three sources.",
+    "settings.dataHealth.learning": "Self-learning loop (rolling IC)",
+    "settings.dataHealth.learningDetail": "resolved decisions checked against real outcomes",
+    "settings.dataHealth.probeSuccess": "Probed all data sources",
+    "settings.dataHealth.probeError": "Could not probe data sources — try again later",
   },
   vi: {
     // Sidebar
@@ -480,6 +490,16 @@ const translations = {
     "deliveries.dialog.deliveredTo": "Đã gửi đến",
     "deliveries.dialog.via": "qua",
     "deliveries.dialog.on": "vào lúc",
+
+    // Settings - Data Health
+    "settings.dataHealth.title": "Sức khỏe nguồn dữ liệu",
+    "settings.dataHealth.description": "Sức khỏe chuỗi dữ liệu VN (DNSE → VCI → TCBS) — ghi nhận mỗi lần pipeline chạy.",
+    "settings.dataHealth.probe": "Kiểm tra ngay",
+    "settings.dataHealth.empty": "Chưa có thống kê — chạy một phân tích hoặc bấm Kiểm tra ngay để probe cả ba nguồn.",
+    "settings.dataHealth.learning": "Vòng tự học (rolling IC)",
+    "settings.dataHealth.learningDetail": "quyết định đã đối chiếu kết quả thực tế",
+    "settings.dataHealth.probeSuccess": "Đã probe cả ba nguồn dữ liệu",
+    "settings.dataHealth.probeError": "Không probe được nguồn dữ liệu — thử lại sau",
   }
 }
 

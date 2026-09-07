@@ -105,3 +105,9 @@ export async function deleteJob(id: string): Promise<void> {
     method: "DELETE",
   })
 }
+
+export async function runJobNow(id: string): Promise<{ status: string; job_id: number }> {
+  return await fetchClient(`/jobs/${id}/run`, {
+    method: "POST",
+  })
+}

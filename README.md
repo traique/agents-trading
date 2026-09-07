@@ -74,12 +74,25 @@ Panel trên trang Agents cho chọn provider/model/depth (shallow = nhanh và r�
 | Report History | Xem lại báo cáo đã chạy |
 | Analyst System | Sơ đồ đội agent |
 | Deliveries | Bản ghi báo cáo đã lưu/giao |
-| Scheduled Jobs | CRUD job định kỳ — **preview, chưa nối vào scheduler chạy thật** |
-| Settings | Provider/model/API key theo user |
+| Scheduled Jobs | CRUD job định kỳ — **scheduler chạy thật**: backend quét job active đến hạn mỗi 60 giây, tự chạy phân tích và lưu vào Report History; nút ⚡ Run now để kích hoạt tức thì |
+| Settings | Provider/model/API key theo user + **Data Source Health** (sức khỏe chuỗi nguồn DNSE/VCI/TCBS, nút probe cả ba nguồn) |
+
+## Consensus score & Kelly sizing (mới)
+
+Kết quả phân tích giờ kèm hai chỉ số tính deterministic (không tốn thêm LLM call), lấy cảm hứng từ [augur](https://github.com/BruceLanLan/augur):
+
+- **Consensus score (0–10)**: gộp recommendation + confidence của mọi agent thành điểm đồng thuận có trọng số, hiển thị kèm phân bố Bull/Neutral/Bear.
+- **Position sizing (Kelly×½)**: % vị thế khuyến nghị theo công thức Kelly từ cặp (confidence ≈ win-probability, risk/reward của entry/target/stop), cap 12.5% vốn. Chỉ áp dụng cho khuyến nghị BUY.
+
+## Vòng tự học (rolling IC)
+
+Mỗi quyết định được lưu vào memory log kèm kết quả thực tế sau khi đủ window giao dịch (`tradingagents/agents/utils/memory.py`). Module `tradingagents/consensus/learning.py` gộp các entry đã đối chiếu thành thống kê hit-rate theo rating + signal IC, ghi snapshot vào `cache/feedback/rolling_ic.json`, và inject một đoạn "tự đánh giá" (kèm cảnh báo cỡ mẫu) vào context các agent ở lần chạy sau — chỉ khi đã có ≥ 3 mẫu để tránh nhiễu.
 
 ## Ghi chú trung thực
 
-- LightRAG + Reflection Agent (vòng tự học) mới ở giai đoạn preview, chưa chạy thật.
+- Scheduler chạy trong process backend (asyncio task, tắt bằng `JOBS_SCHEDULER_ENABLED=false`); trên Render free tier service ngủ sau ~15 phút không traffic nên job định kỳ chỉ đáng tin khi có uptime monitor ping.
+- Vòng tự học IC chỉ đo hit-rate hướng (đúng chiều hay không) và IC thô, chưa là trọng số được tối ưu; cần hàng chục mẫu mới có ý nghĩa thống kê.
+
 - Browser Agent vĩ mô là non-deterministic (chậm, tốn token, phụ thuộc LLM điều hướng trang web) — kết quả phần này luôn gắn nguồn và nên kiểm chứng chéo.
 - Free tier Render: 512MB RAM nên không chạy được Playwright/Chromium; service ngủ sau ~15 phút không traffic.
 - Lõi `tradingagents/` đã sync lên upstream v0.4.0 (fix look-ahead, checkpoint resume, FRED/Polymarket vendors, GPT-5.6/GLM-5.3, Bedrock, retry budget). Skill UI/UX (ui-ux-pro-max) nằm trong `.claude/skills/` — AI phát triển giao diện nên đọc `design-system/agents-trading/MASTER.md` trước khi dựng trang mới.

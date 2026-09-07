@@ -26,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 import { useSettingsStore } from "@/store/settingsStore"
 import { UpdateUserSettingRequest } from "@/types/settings"
+import { DataHealthCard } from "./components/DataHealthCard"
 
 function SecureInput({ id, placeholder, value, onChange }: { id: string, placeholder: string, value: string, onChange: (val: string) => void }) {
   const [showPassword, setShowPassword] = useState(false)
@@ -305,6 +306,8 @@ export default function SettingsPage() {
                       </Card>
                     </div>
                   </div>
+
+                  <DataHealthCard />
                 </div>
               )}
 

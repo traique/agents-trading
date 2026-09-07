@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { CalendarClock, Plus } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { JobFormSheet } from "./components/JobFormSheet"
 import { JobLogDialog } from "./components/JobLogDialog"
 import { TradingJob } from "./components/types"
 
-import { fetchJobs, fetchJobMetrics, createJob, updateJob, deleteJob } from "./api"
+import { fetchJobs, fetchJobMetrics, createJob, updateJob, deleteJob, runJobNow } from "./api"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
@@ -28,6 +28,15 @@ export default function JobsPage() {
   // Log Viewer State
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [selectedLogJob, setSelectedLogJob] = useState<TradingJob | null>(null)
+  const [runningJobIds, setRunningJobIds] = useState<string[]>([])
+  const runPollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Dọn poll timer khi rời trang để tránh setJobs trên component đã unmount.
+  useEffect(() => {
+    return () => {
+      if (runPollTimeout.current) clearTimeout(runPollTimeout.current)
+    }
+  }, [])
 
   const openCreateSheet = () => {
     setEditingJob(null)
@@ -88,6 +97,48 @@ export default function JobsPage() {
     } catch (error) {
       console.error("Failed to update status", error)
       toast.error("Failed to change job status")
+    }
+  }
+
+  const handleRunNow = async (id: string) => {
+    const job = jobs.find(j => j.id === id)
+    try {
+      setRunningJobIds(prev => [...prev, id])
+      await runJobNow(id)
+      toast.success("Job triggered — kết quả sẽ xuất hiện trong Report History khi xong", {
+        action: job ? { label: "View logs", onClick: () => viewLogs(job) } : undefined,
+      })
+      // Pipeline chạy hàng phút: poll để giữ trạng thái "running" cho tới khi
+      // job có lần chạy mới (lastRun thay đổi) hoặc hết thời gian chờ.
+      const startedAt = Date.now()
+      const poll = async () => {
+        try {
+          const jobsData = await fetchJobs()
+          setJobs(jobsData)
+          const current = jobsData.find(j => j.id === id)
+          const hasNewRun = current?.lastRun && current.lastRun !== job?.lastRun
+          if (hasNewRun || Date.now() - startedAt > 10 * 60 * 1000) {
+            setRunningJobIds(prev => prev.filter(j => j !== id))
+            const metricsData = await fetchJobMetrics()
+            setMetrics(metricsData)
+            return
+          }
+        } catch {
+          // lỗi poll nền: bỏ qua, tiếp tục đợi
+        }
+        if (Date.now() - startedAt <= 10 * 60 * 1000) {
+          runPollTimeout.current = setTimeout(poll, 10000)
+        }
+      }
+      runPollTimeout.current = setTimeout(poll, 5000)
+    } catch (error: any) {
+      console.error("Failed to run job", error)
+      if (error?.status === 409) {
+        toast.info("Job is already running — vui lòng đợi lần chạy hiện tại hoàn tất")
+      } else {
+        toast.error(error?.detail || "Failed to trigger job")
+      }
+      setRunningJobIds(prev => prev.filter(j => j !== id))
     }
   }
 
@@ -161,12 +212,14 @@ export default function JobsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary/50" />
           </div>
         ) : (
-          <JobsTable 
+          <JobsTable
             jobs={jobs}
             onViewLogs={viewLogs}
             onToggleStatus={handleToggleStatus}
             onEdit={openEditSheet}
             onDelete={handleDelete}
+            onRunNow={handleRunNow}
+            runningJobIds={runningJobIds}
           />
         )}
       </div>
